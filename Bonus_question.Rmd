@@ -1,0 +1,47 @@
+---
+title: "Bonus_question"
+author: "Daniël Scheeper, Rogier Pubanz, Anna Grabowska, "
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r}
+library(ggplot2)
+library(tidyverse)
+library(RColorBrewer)
+data <- msleep
+```
+
+```{r}
+data$brainratio <- data$brainwt/data$bodywt
+cleandata <- data[!is.na(data$vore), ]
+cleandata <- cleandata %>%
+  mutate(vore = case_when(
+    vore == "carni" ~ "Carnivore",
+    vore == "herbi" ~ "Herbivore",
+    vore == "insecti" ~ "Insectivore",
+    vore == "omni" ~ "Omnivore",
+    TRUE ~ vore
+  ))
+```
+
+
+```{r}
+theme_set(theme_minimal() +
+            theme(title = element_text(color = 'steelblue', face = 'bold'))) 
+# All titles from now on will be steelblue and in bold
+
+ggplot(data = cleandata, mapping = aes(x = brainratio, y = sleep_total)) +
+  geom_point(aes(color = vore)) +
+  scale_color_brewer(palette = "RdYlBu") +
+  labs(title = "Amount of sleep depending on brain ratio and diet",
+       x = "Brain to body ratio", 
+       y = "Total sleep",
+       color = "Diet")
+```
+
+This graph shows the amount of sleep that different types of mammals get depending on their diet and brain to body ratio. There are a couple things you can see in this graph:
+- Herbivores generally have smaller brain to body ratios than other mammals. They also generally sleep less than other animals
+- Omnivores generally have larger brain/body ratio's than herbivores and tend to sleep for a larger part of the day
+- The few insectivores in the dataset have a very large brain/body ratio
+- There is no relationship between brain/body ratio and total sleep that is visible from this graph.
