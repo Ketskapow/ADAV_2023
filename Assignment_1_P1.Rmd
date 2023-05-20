@@ -1,0 +1,8 @@
+---
+title: "Assignment_1_P1"
+author: "Daniël Scheeper"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+
