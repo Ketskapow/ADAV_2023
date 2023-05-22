@@ -4,6 +4,14 @@ author: "Daniël Scheeper"
 date: "`r Sys.Date()`"
 output: pdf_document
 ---
+```{r}
+library(tidyverse)
+```
 
 
-Change
+```{r}
+#load in data and remove index column
+data <- read_csv("merged_data_cleaned.csv") %>% 
+  select(-1)
+```
+
