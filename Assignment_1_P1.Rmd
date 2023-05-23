@@ -44,6 +44,7 @@ Color: Which color the coffee in the cup has
 Category one defects: How many cat. 1 defects the coffee has (significant defect on taste, aroma, visual appearance)
 Category two defects: How many cat. 2 defects the coffee has (minor defects like chipped, partial black, shells or husks, and underdeveloped beans)
 Mean altitude (m): At which mean altitude this coffee is cultured
+Number of bags produced: Amount of bags produced by the coffee farm
 
 
 
