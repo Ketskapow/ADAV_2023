@@ -4,8 +4,62 @@ author: "Daniël Scheeper"
 date: "`r Sys.Date()`"
 output: pdf_document
 ---
+
+## Introduction problem ##
+One of the most popular drinks in the world, coffee appeals to our senses with its complex taste profiles and rich scent. Coffee's flavor is the result of a complex interaction of several elements, including the brewing method and the region from where the beans were harvested. For coffee lovers, industry experts, and researchers looking to improve the whole coffee experience, understanding the factors that affect coffee flavor is essential. In this work, we use a data science methodology to disentangle the various factors that affect coffee flavor, utilizing the power of statistics to find undiscovered patterns.
+
+Domain knowledge about coffee and about what influences the taste:
+Based on our preliminary research by reviewing several articles (INSERT FOOTNOTE ON ARTICLES), we concluded the following influential factors of the taste of coffee that overlap our available features:
+- Variety: Although not as simple as the difference between Arabica and Robusta, variety is said to play an important role in determining the taste
+- Origin: The geographical region in which coffee is grown can have a big impact on how it tastes. The distinctive flavor characteristics of coffee from various places are influenced by a variety of factors, including terroir, soil composition, climate, and altitude.
+- Processing: Following the selection of a coffee cherry, the coffee seed must be dried before being transported and subsequently roasted by a neighborhood artisan roaster. The methods used to do this can differ greatly and have a significant impact on how the coffee ultimately tastes. 
+- Farm practices: The farming methods used on the farm where the coffee is grown is said to have a significant impact on how the coffee tastes. The crop's nature is ultimately going to be impacted by everything, including the usage of herbicides, planting techniques, and trimming schedules.
+
+Articles used (to be added in footnote):
+https://capecoffeebeans.co.za/blogs/cape-coffee-blog/77091524-7-factors-that-influence-coffee-flavour
+https://www.javapresse.com/blogs/buying-coffee/brief-history-of-coffee#:~:text=But%2C%20the%20reality%20is%2C%20coffee,back%20as%20500%20years%20ago.
+https://ictcoffee.com/understanding-coffee-flavors-what-factors-affect-coffee-bean-quality/
+
+Based on our preliminary research, we expect the taste of the coffee, quantified by the total cup points, to be influenced by the variety, origin, processing and farming techniques. Further research will accept or reject this hypothesis.
+
+#### Research question:
+In order to identify the most influential factors of coffee taste, the following research question is formulated:
+Which features have the greatest influence on the taste of coffee, as measured by the coffee quality rating, using the Coffee Quality Database from the Coffee Quality Institute (CQI)?
+
+#### Methodology
+We'll use the Kaggle dataset, specifically the "merged_data_cleaned.csv" file from the CQI's Coffee Quality Database, to look into this subject. This dataset includes a plethora of data on a variety of aspects of coffee, such as sensory assessments, bean qualities, processing techniques, and more. We seek to find the key characteristics that greatly influence coffee's flavor and add to its overall quality rating by utilizing data science methodologies. We will use linear regression using the best subset selection and shrinkage methods, specifically LASSO (Least Absolute Shrinkage and Selection Operator) and ridge regression. By using these statistical methods, we want to identify the critical elements that affect how coffee tastes as determined by the coffee quality rating (total cup points).
+
+#### Variables used 
+For the selected model, we have selected the following variables:
+
+Dependent variables:
+Total cup points: Number of points the final product coffee has stored by the CQI jury (1-100 points; 100 being the highest score)
+
+Independent variables:
+Country of origin: Where the coffee was farmed
+Harvest year: The year the coffee was harvested
+Variety: Which variety of coffee (Arabica / Robusta)
+Processing method: Which processing method was used before roasting
+Color: Which color the coffee in the cup has
+Category one defects: How many cat. 1 defects the coffee has (significant defect on taste, aroma, visual appearance)
+Category two defects: How many cat. 2 defects the coffee has (minor defects like chipped, partial black, shells or husks, and underdeveloped beans)
+Mean altitude (m): At which mean altitude this coffee is cultured
+
+
+
+First, we load in the libraries which are used throughout the analysis
 ```{r}
-library(tidyverse)
+library(tidyverse) # metapackage of all tidyverse packages
+library(ggplot2) # For plotting visualizations
+library(caret) # For regression functions
+library(glmnet) # For shrinkage methods
+library(naniar) # for plotting missing values - does not work yet
+```
+
+
+We set a seed to ensure reproducability
+```{r}
+set.seed(42)
 ```
 
 
