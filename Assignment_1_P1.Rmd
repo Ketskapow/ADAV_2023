@@ -44,12 +44,11 @@ Color: Which color the coffee in the cup has
 Category one defects: How many cat. 1 defects the coffee has (significant defect on taste, aroma, visual appearance)
 Category two defects: How many cat. 2 defects the coffee has (minor defects like chipped, partial black, shells or husks, and underdeveloped beans)
 Mean altitude (m): At which mean altitude this coffee is cultured
-Number of bags produced: Amount of bags produced by the coffee farm
 
 
 
 First, we load in the libraries which are used throughout the analysis
-```{r}
+```{r packages, warning = FALSE, message = FALSE}
 library(tidyverse) # metapackage of all tidyverse packages
 library(ggplot2) # For plotting visualizations
 library(caret) # For regression functions
@@ -59,14 +58,89 @@ library(naniar) # for plotting missing values - does not work yet
 
 
 We set a seed to ensure reproducability
-```{r}
+```{r seed, include = FALSE}
 set.seed(42)
 ```
 
 
-```{r}
+```{r data cleaning}
 #load in data and remove index column
-data <- read_csv("merged_data_cleaned.csv") %>% 
+coffee_data <- read_csv("merged_data_cleaned.csv") %>% 
   select(-1)
+
+# check for number of NAs in each variable
+missing_counts <- colSums(is.na(coffee_data))
+missing_counts
+
+# clean Harvest Year variable (turn it into continuous variable (take only last year if two years are given)
+continuous_variable <- numeric(nrow(coffee_data))
+for (i in 1:nrow(coffee_data)) {
+  entry <- as.character(coffee_data$Harvest.Year[i])
+  last_year <- substring(entry, nchar(entry) - 3)
+  continuous_variable[i] <- as.numeric(last_year)
+}
+coffee_data$Harvest.Year <- continuous_variable
+coffee_data$Harvest.Year <- as.numeric(coffee_data$Harvest.Year)
+
+# replace "United States (Hawaii)" and "United States (Puerto Rico)"  with "Hawaii" and "Puerto Rico" in Country.of.Origin
+coffee_data$Country.of.Origin <- gsub("United States \\(Hawaii\\)", "Hawaii", coffee_data$Country.of.Origin)
+coffee_data$Country.of.Origin <- gsub("United States \\(Puerto Rico\\)", "Puerto Rico", coffee_data$Country.of.Origin)
+
+# change altitute numeric and get rid off all the "meters", "m" etc.
+
+# keep everything but quality measures and (presumably) non-informative columns 
+coffee_data_cleaned <- coffee_data %>%
+  select(Country.of.Origin, Harvest.Year, Variety, Processing.Method, Color, Category.One.Defects, Category.Two.Defects, altitude_mean_meters, Total.Cup.Points)
+
+# remove cups where total cup points is missing
+coffee_data_cleaned <- coffee_data_cleaned %>% 
+  na.omit(select(., Country.of.Origin, Harvest.Year, Variety, Processing.Method, Color, altitude_mean_meters, Total.Cup.Points))
+
+nrow(coffee_data_cleaned)
+head(coffee_data_cleaned)
+
+print(coffee_data_cleaned)
+
 ```
 
+```{r}
+ggplot(coffee_data_cleaned, aes(x = altitude_mean_meters)) +
+  geom_histogram()
+#There are several values here that are higher than the highest point on earth, that's an entry error. But we can fix it.
+subset_df <- subset(coffee_data, altitude_mean_meters > 9000)
+print(subset_df[, c("Farm.Name", "Altitude", "altitude_mean_meters")])
+
+#You can see that the values which are above 9000 are entry errors. We can fix that like so.
+coffee_data_cleaned$altitude_mean_meters <- ifelse(coffee_data_cleaned$altitude_mean_meters == 190164.000, 1901.64, coffee_data_cleaned$altitude_mean_meters)
+
+coffee_data_cleaned$altitude_mean_meters <- ifelse(coffee_data_cleaned$altitude_mean_meters %in% c(110000.000, 11000.000), 1100.000, coffee_data_cleaned$altitude_mean_meters)
+
+
+#Check the new distribution
+ggplot(coffee_data_cleaned, aes(x = altitude_mean_meters)) +
+  geom_histogram()
+
+```
+
+
+``` {r plots}
+# Plot of processing method and mean altitude
+ggplot(coffee_data_cleaned, aes(x = Processing.Method, 
+                        y = Total.Cup.Points, 
+                        group = altitude_mean_meters,
+                        colour = altitude_mean_meters)) +
+  geom_point() +
+  labs(x = "Processing method", 
+       y = "Total cup points", 
+       colour = "Mean altitude",
+       title = "Processing Method and Mean Altitude on Total Cup Points") +
+  theme_minimal() 
+
+# Plot of distributions per country of origin
+ggplot(coffee_data, aes(x = Country.of.Origin, colour = Country.of.Origin)) +
+  geom_bar() +
+  labs(x = "Country of Origin", y = "Count", 
+       title = "Distributions per Country of Origin") +
+  theme_minimal()
+
+```
