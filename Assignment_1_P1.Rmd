@@ -144,3 +144,108 @@ ggplot(coffee_data, aes(x = Country.of.Origin, colour = Country.of.Origin)) +
   theme_minimal()
 
 ```
+
+```{r split}
+# 60% partition
+partitions_60 <- createDataPartition(y = coffee_data_cleaned$Total.Cup.Points, p = 0.6, list = FALSE)
+
+coffee_train <- coffee_data_cleaned[partitions_60, ]
+
+remaining_data <- coffee_data_cleaned[-partitions_60, ]
+
+# 20% partition
+partitions_20 <- createDataPartition(y = remaining_data$Total.Cup.Points, p = 0.5, list = FALSE)
+
+coffee_valid <- remaining_data[partitions_20, ]
+
+coffee_test <- remaining_data[-partitions_20, ]
+```
+
+```{r}
+# Tag all datasets and combine the data
+coffee_train$Group <- "Train"
+coffee_valid$Group <- "Validate"
+coffee_test$Group <- "Test"
+combined_data <- rbind(coffee_train, coffee_valid, coffee_test)
+
+
+
+# Create a simple histogram with all selected data
+library(ggplot2)
+ggplot(combined_data, mapping = aes(x = Total.Cup.Points, fill = Group)) +
+ geom_density(alpha = 0.5) +
+ labs(x = "Total cup points", y = "%", title = 'Total cup points per dataset') +
+ scale_fill_manual(values = c("Train" = "lightblue", "Validate" = "lightgreen", "Test" = "red")) +
+ theme_minimal()
+```
+
+```{r}
+#Define lm_mse function for later model evaluation purposes
+lm_mse <- function(formula, train_data, valid_data) {
+  y_name <- as.character(formula)[2]
+  y_true <- valid_data[[y_name]]
+  
+  lm_fit <- lm(formula, train_data)
+  y_pred <- predict(lm_fit, newdata = valid_data)
+  
+  mean((y_true - y_pred)^2)
+}
+```
+
+```{r}
+#Create matrix for glmnet function and remove intercept created by function
+x_train <- model.matrix(Total.Cup.Points ~ Country.of.Origin + Variety + Processing.Method + Color, data = coffee_train)
+x_train <- x_train[, -1]
+
+#Make df for continuous variables since model.matrix can't parse those
+contvar <- coffee_train %>%
+  select(-Country.of.Origin, -Variety, -Processing.Method, -Color, -Total.Cup.Points, -Group)
+
+#turn df into matrix
+x_contvar <- data.matrix(contvar)
+
+#bind columns to have complete matrix
+x_train <- cbind(x_train, x_contvar)
+```
+
+```{r}
+#make lasso regression
+LassoReg1<- glmnet(x_train, coffee_train$Total.Cup.Points, family = "gaussian", lambda = 15)
+```
+
+```{r}
+LassoReg1$beta
+```
+```{r}
+#Create matrix for glmnet function and remove intercept created by function
+x_valid <- model.matrix(Total.Cup.Points ~ Country.of.Origin + Variety + Processing.Method + Color, data = coffee_valid)
+x_valid <- x_valid[, -1]
+
+#Make df for continuous variables since model.matrix can't parse those
+contvar_valid <- coffee_valid %>%
+  select(-Country.of.Origin, -Variety, -Processing.Method, -Color, -Total.Cup.Points, -Group)
+
+#turn df into matrix
+x_contvar_valid <- data.matrix(contvar_valid)
+
+#bind columns to have complete matrix
+x_valid <- cbind(x_valid, x_contvar_valid)
+
+#bind rows to have combined data
+x_combined <- rbind(x_valid, x_train)
+coffee_combined <- bind_rows(coffee_valid, coffee_train)
+```
+
+
+```{r}
+cv <- cv.glmnet(x_train, coffee_train$Total.Cup.Points, family = "gaussian", alpha = 1, nfolds = 15)
+
+best_lambda <- cv$lambda.min
+```
+
+```{r}
+#make lasso regression
+LassoReg2<- glmnet(x_train, coffee_train$Total.Cup.Points, family = "gaussian", lambda = best_lambda)
+LassoReg2$beta
+```
+
