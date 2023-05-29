@@ -46,7 +46,6 @@ Category two defects: How many cat. 2 defects the coffee has (minor defects like
 Mean altitude (m): At which mean altitude this coffee is cultured
 
 
-
 First, we load in the libraries which are used throughout the analysis
 ```{r packages, warning = FALSE, message = FALSE}
 library(tidyverse) # metapackage of all tidyverse packages
@@ -62,7 +61,14 @@ We set a seed to ensure reproducability
 set.seed(42)
 ```
 
-
+#### Data cleaning 
+After getting familiar with the dataset, we identified the following steps for data cleaning:
+1.	Missing Values: We checked for missing values in the dataset. As the next step, we proceeded to remove all rows that were missing information about the total cup points. 
+2.	Selecting Relevant Variables: We decided which variables are most relevant to our analysis. We kept only the variables that we found important for our research.
+3.	Handling Harvest.Year: We observed an issue with some cells containing two dates or a month instead of just a year. We addressed this issue as well as we transformed the Harvest Date variable into a continuous.
+4.	Standardizing Country.of.Origin: In the variable "Country.of.Origin," we replaced the values "United States (Hawaii)" and "United States (Puerto Rico)" with "Hawaii" and "Puerto Rico," respectively. 
+5.	Adjusting Altitude Data: We noticed that some entries in the "altitude_mean_meters" variable were unrealistic. We replaced the unrealistic altitude values with proper information. 
+After implementing these data cleaning steps, we considered the remaining variables to be sufficiently clean for our analysis.
 ```{r data cleaning}
 #load in data and remove index column
 coffee_data <- read_csv("merged_data_cleaned.csv") %>% 
@@ -85,8 +91,6 @@ coffee_data$Harvest.Year <- as.numeric(coffee_data$Harvest.Year)
 # replace "United States (Hawaii)" and "United States (Puerto Rico)"  with "Hawaii" and "Puerto Rico" in Country.of.Origin
 coffee_data$Country.of.Origin <- gsub("United States \\(Hawaii\\)", "Hawaii", coffee_data$Country.of.Origin)
 coffee_data$Country.of.Origin <- gsub("United States \\(Puerto Rico\\)", "Puerto Rico", coffee_data$Country.of.Origin)
-
-# change altitute numeric and get rid off all the "meters", "m" etc.
 
 # keep everything but quality measures and (presumably) non-informative columns 
 coffee_data_cleaned <- coffee_data %>%
@@ -122,26 +126,95 @@ ggplot(coffee_data_cleaned, aes(x = altitude_mean_meters)) +
 
 ```
 
-
+#### Create plots 
 ``` {r plots}
-# Plot of processing method and mean altitude
-ggplot(coffee_data_cleaned, aes(x = Processing.Method, 
-                        y = Total.Cup.Points, 
-                        group = altitude_mean_meters,
-                        colour = altitude_mean_meters)) +
-  geom_point() +
-  labs(x = "Processing method", 
-       y = "Total cup points", 
-       colour = "Mean altitude",
-       title = "Processing Method and Mean Altitude on Total Cup Points") +
-  theme_minimal() 
+# Create four groups for Total.Cup.Points
+coffee_data_cleaned$Group_Total.Cup.Points <- cut(coffee_data_cleaned$Total.Cup.Points,
+                         breaks = c(60, 70, 80, 90, 100),
+                         labels = c("60-70", "70-80", "80-90", "90-100"),
+                         include.lowest = TRUE)
 
-# Plot of distributions per country of origin
-ggplot(coffee_data, aes(x = Country.of.Origin, colour = Country.of.Origin)) +
+# Create the graph 1
+ggplot(coffee_data_cleaned, aes(x = altitude_mean_meters, y = Color, colour = Group_Total.Cup.Points)) +
+  geom_point() +
+  labs(x = "Altitude (meters)", y = "Color", colour = "Total.Cup.Points Groups") +
+  ggtitle("Relationship between Altitude, Color, and Total Cup Points")
+
+
+# Calculate the average defects
+average_defects <- coffee_data_cleaned %>%
+  group_by(Group_Total.Cup.Points) %>%
+  summarise(Average_Category.One.Defects = mean(Category.One.Defects),
+            Average_Category.Two.Defects = mean(Category.Two.Defects))
+
+# Reshape the data for plotting
+average_defects_long <- average_defects %>%
+  gather(Defect_Category, Average_Defects, -Group_Total.Cup.Points)
+
+# Create the graph 2
+ggplot(average_defects_long, aes(x = Group_Total.Cup.Points, y = Average_Defects, fill = Defect_Category)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "Total.Cup.Points", y = "Average Number of Defects", fill = "Defect Category") +
+  ggtitle("Average Number of Defects by Group Total Cup Points") +
+  theme_bw()
+
+# Create the graph 3
+ggplot(coffee_data_cleaned, aes(x = Variety, fill = Processing.Method)) +
   geom_bar() +
-  labs(x = "Country of Origin", y = "Count", 
-       title = "Distributions per Country of Origin") +
-  theme_minimal()
+  labs(x = "Variety", y = "Count", fill = "Processing Method") +
+  ggtitle("Processing Method Distribution by Coffee Variety") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Calculate the average total cup points by Harvest Year
+average <- coffee_data_cleaned %>%
+  group_by(Harvest.Year) %>%
+  summarise(Average = mean(Total.Cup.Points))
+
+# Create the plot 4 
+ggplot(average, aes(x = Harvest.Year, y = Average)) +
+  geom_line() +
+  geom_point() +
+  labs(x = "Harvest Year", y = "Average Total Cup Points") +
+  ggtitle("Average Total Cup Points by Harvest Year") +
+  theme_bw()
+
+# Create a function that switches country to a continent 
+country_to_continent <- function(country) {
+  switch(country,
+         "Ethiopia" = "Africa",
+         "China" = "Asia",
+         "United States" = "North America",
+         "Costa Rica" = "North America",
+         "Mexico" = "North America",
+         "Brazil" = "South America",
+         "Uganda" = "Africa",
+         "Taiwan" = "Asia",
+         "Kenya" = "Africa",
+         "Thailand" = "Asia",
+         "Colombia" = "South America",
+         "Panama" = "North America",
+         "Guatemala" = "North America",
+         "El Salvador" = "North America",
+         "Indonesia" = "Asia",
+         "Tanzania, United Republic Of" = "Africa",
+         "Honduras" = "North America",
+         "Nicaragua" = "North America",
+         "Puerto Rico" = "North America",
+         "Haiti" = "North America",
+         "Vietnam" = "Asia",
+         "Philippines" = "Asia",
+         "Rwanda" = "Africa",
+         "Malawi" = "Africa",
+         "Laos" = "Asia",
+         "Myanmar" = "Asia",
+         "Peru" = "South America",
+         "India" = "Asia",
+         "Unknown" = "Unknown"
+  )
+}
+
+# Add a new variable 'Continent' 
+coffee_data_cleaned$Continent <- sapply(coffee_data_cleaned$Country.of.Origin, country_to_continent)
 
 ```
 
